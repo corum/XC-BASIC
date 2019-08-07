@@ -6,6 +6,7 @@ import std.string;
 import pegged.grammar;
 import program;
 import petscii;
+import excess;
 
 class Number
 {
@@ -90,5 +91,22 @@ class Number
                 this.type = 'w';
             }
         }
+    }
+
+    string getPushCode()
+    {
+        string asmcode;
+        if(this.type == 'w') {
+            asmcode = "\tpword #" ~ to!string(this.intval) ~ "\n";
+        }
+        else if(this.type == 'b') {
+            asmcode = "\tpbyte #" ~ to!string(this.intval) ~ "\n";
+        }
+        else {
+            ubyte[5] bytes = float_to_hex(this.floatval);
+            asmcode ~= "\tpfloat $" ~ to!string(bytes[0], 16) ~ ", $" ~ to!string(bytes[1], 16) ~ ", $"
+            ~ to!string(bytes[2], 16) ~ ", $" ~ to!string(bytes[3], 16)  ~ ", $" ~ to!string(bytes[4], 16) ~ "\n";
+        }
+        return asmcode;
     }
 }

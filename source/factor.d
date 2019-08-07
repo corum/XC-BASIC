@@ -15,6 +15,7 @@ import number;
 import stringliteral;
 import xcbarray;
 import var;
+import address;
 
 class Factor
 {
@@ -118,47 +119,15 @@ class Factor
             break;
 
             case "XCBASIC.Address":
-                ParseTree v = this.node.children[0];
-                string varname = join(v.children[0].matches);
-                string sigil = "";
-                if(v.children.length > 1) {
-                    sigil = join(v.children[1].matches);
-                }
-
-                string lbl = "";
-
-                if(this.program.labelExists(varname)) {
-                    lbl =this.program.getLabelForCurrentScope(varname);
-                }
-                else if(this.program.is_variable(varname, sigil)) {
-                    Variable var = this.program.findVariable(varname, sigil);
-                    if(var.isConst) {
-                        this.program.error("A constant has no address");
-                    }
-                    lbl = var.getLabel();
-                }
-                else {
-                    this.program.error("Undefined variable or label: " ~ varname);
-                }
-
-                this.asmcode ~= "\tpaddr " ~ lbl ~ "\n";
+                Address addr = new Address(this.node, this.program);
+                this.asmcode ~= addr.asmcode;
 
             break;
 
             case "XCBASIC.Number":
                 ParseTree v = this.node.children[0];
                 Number num = new Number(v, this.program);
-                if(num.type == 'w') {
-                    this.asmcode ~= "\tpword #" ~ to!string(num.intval) ~ "\n";
-                }
-                else if(num.type == 'b') {
-                    this.asmcode ~= "\tpbyte #" ~ to!string(num.intval) ~ "\n";
-                }
-                else {
-                    ubyte[5] bytes = float_to_hex(num.floatval);
-                    this.asmcode ~= "\tpfloat $" ~ to!string(bytes[0], 16) ~ ", $" ~ to!string(bytes[1], 16) ~ ", $"
-                    ~ to!string(bytes[2], 16) ~ ", $" ~ to!string(bytes[3], 16)  ~ ", $" ~ to!string(bytes[4], 16) ~ "\n";
-                }
+                this.asmcode ~= num.getPushCode();
             break;
 
             case "XCBASIC.Expression":

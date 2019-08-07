@@ -1,6 +1,6 @@
 module optimizer;
 
-import std.string, std.array, std.uni, std.regex, std.stdio;
+import std.string, std.array, std.uni, std.regex, std.stdio, std.conv;
 import std.algorithm.mutation;
 import opt;
 
@@ -94,7 +94,7 @@ class Replace_sequences: Optimization_pass
 
     private bool match_sequences(string candidate)
     {
-        uint len = uint(candidate.length);
+        uint len = to!uint(candidate.length);
         foreach(item; this.sequences.byKey()) {
             if(len <= item.length && item[0..len] == candidate) {
                 return true;

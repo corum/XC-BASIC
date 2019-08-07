@@ -5,11 +5,12 @@ import program;
 import std.string, std.conv, std.stdio;
 import expression;
 import stringliteral;
-import number;
+import number, address, var;
 import excess;
 import xcbarray;
 import condition;
 import std.algorithm.mutation;
+import std.algorithm.comparison;
 
 Stmt StmtFactory(ParseTree node, Program program) {
 	string stmt_class =node.children[0].name;
@@ -201,6 +202,18 @@ Stmt StmtFactory(ParseTree node, Program program) {
 
         case "XCBASIC.Endif_stmt":
             stmt = new Endif_stmt(node, program);
+        break;
+
+        case "XCBASIC.Aliasfn_stmt":
+            stmt = new Aliasfn_stmt(node, program);
+        break;
+
+        case "XCBASIC.Aliascmd_stmt":
+            stmt = new Aliascmd_stmt(node, program);
+        break;
+
+        case "XCBASIC.Userland_stmt":
+            stmt = new Userland_stmt(node, program);
         break;
 
 		default:
@@ -539,12 +552,18 @@ class Call_stmt:Stmt
 {
 	mixin StmtConstructor;
 
+    protected string getProcLabel()
+    {
+        string lbl = join(this.node.children[0].children[0].matches);
+        if(!this.program.procExists(lbl)) {
+            this.program.error("Procedure not declared");
+        }
+        return lbl;
+    }
+
 	void process()
 	{
-		string lbl = join(this.node.children[0].children[0].matches);
-		if(!this.program.procExists(lbl)) {
-			this.program.error("Procedure not declared");
-		}
+		string lbl = this.getProcLabel();
 		Procedure proc = this.program.findProcedure(lbl);
 		if(this.node.children[0].children.length > 1) {
 			ParseTree exprlist = this.node.children[0].children[1];
@@ -1724,4 +1743,89 @@ class Memshift_stmt: Memmove_stmt
     {
         return "memshift";
     }
+}
+
+abstract class Alias_stmt: Stmt
+{
+    mixin StmtConstructor;
+
+    string getCode(ParseTree address)
+    {
+        string code;
+        final switch(address.name) {
+            case "XCBASIC.Number":
+                Number num = new Number(address, this.program);
+                if(num.type != 'w') {
+                    this.program.error("Address must be an integer");
+                }
+                code = num.getPushCode();
+            break;
+
+            case "XCBASIC.Address":
+                Address a = new Address(address, this.program);
+                code = a.asmcode;
+            break;
+
+            case "XCBASIC.Var":
+                Var v = new Var(address, this.program);
+                if(!v.program_var.isConst) {
+                    this.program.error("Address must be constant");
+                }
+                code = v.get_asm_code();
+            break;
+        }
+        return code;
+    }
+}
+
+class Aliasfn_stmt: Alias_stmt
+{
+    mixin StmtConstructor;
+
+    void process()
+    {
+        auto address = this.node.children[0].children[0];
+        string code = this.getCode(address);
+        string fnname = join(this.node.children[0].children[1].matches)[1..$-1];
+
+        if(!endsWith(fnname, "#", "!", "$", "%")) {
+            fnname = fnname ~ "#";
+        }
+
+        if(fnname in this.program.fun_aliases) {
+            this.program.error("The function alias '" ~ fnname ~ "' already exists");
+        }
+
+        this.program.fun_aliases[fnname] = code;
+    }
+}
+
+class Aliascmd_stmt: Alias_stmt
+{
+    mixin StmtConstructor;
+
+    void process()
+    {
+        auto address = this.node.children[0].children[0];
+        string code = this.getCode(address);
+        string cmdname = join(this.node.children[0].children[1].matches)[1..$-1];
+
+        if(cmdname in this.program.cmd_aliases) {
+            this.program.error("The command alias '" ~ cmdname ~ "' already exists");
+        }
+
+        this.program.cmd_aliases[cmdname] = code;
+    }
+}
+
+class Userland_stmt: Call_stmt
+{
+    mixin StmtConstructor;
+
+    protected string getProcLabel()
+    {
+        string cmdname = join(this.node.children[0].children[0].matches);
+
+    }
+
 }

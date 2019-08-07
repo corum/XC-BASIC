@@ -107,6 +107,8 @@ class Program
     bool use_memlib = false;
 
     int[string] compiler_options;
+    string[string] fun_aliases;
+    string[string] cmd_aliases;
 
     Stack if_stack, while_stack, repeat_stack;
 

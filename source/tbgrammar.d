@@ -13,7 +13,8 @@ XCBASIC:
                 Include_stmt / Inc_stmt / Dec_stmt / Proc_stmt / Endproc_stmt /  Sys_stmt / Load_stmt / Save_stmt /
                 Origin_stmt / Asm_stmt / Doke_stmt / Strcpy_stmt / Strncpy_stmt / Curpos_stmt / On_stmt / Wait_stmt / Watch_stmt /
                 Pragma_stmt / Memset_stmt / Memcpy_stmt / Memshift_stmt / While_stmt / Endwhile_stmt /
-                If_sa_stmt / Else_stmt / Endif_stmt / End_stmt / Repeat_stmt / Until_stmt
+                If_sa_stmt / Else_stmt / Endif_stmt / End_stmt / Repeat_stmt / Until_stmt / Aliasfn_stmt / Aliascmd_stmt /
+                Userland_stmt
     Const_stmt <    "const"i :WS? Var :WS? "=" :WS? Number
     Let_stmt <      ("let"i / eps) :WS? Var :WS? "=" :WS? Expression
     Print_stmt <    "print"i :WS? ExprList
@@ -61,6 +62,9 @@ XCBASIC:
     Memset_stmt <   "memset"i :WS? Expression :WS? "," :WS? Expression :WS? "," :WS? Expression
     Memcpy_stmt <   "memcpy"i :WS? Expression :WS? "," :WS? Expression :WS? "," :WS? Expression
     Memshift_stmt < "memshift"i :WS? Expression :WS? "," :WS? Expression :WS? "," :WS? Expression
+    Aliasfn_stmt <  "aliasfn"i :WS? (Number / Address / Var) :WS? "," :WS? String
+    Aliascmd_stmt < "aliascmd"i :WS? String :WS? "," :WS? String
+    Userland_stmt < Id :WS? ExprList?
 
     Branch_type < "goto"i / "gosub"i
     Relation < Expression :WS? Relop :WS? Expression
@@ -72,7 +76,7 @@ XCBASIC:
     Expression < Simplexp (:WS? BW_OP :WS? Simplexp :WS?)*
     Simplexp < Term (:WS? E_OP :WS? Term :WS?)*
     Term < Factor (:WS? T_OP :WS? Factor :WS?)*
-    Factor < (Var / Number / Parenthesis / String / Expression / Fn_call / Address)
+    Factor < (Fn_call / Var / Number / Parenthesis / String / Expression / Address)
     Fn_call < Id Vartype  "(" :WS? (ExprList / eps) :WS? ")"
 
     Var < Varname Vartype Subscript?
@@ -112,7 +116,7 @@ XCBASIC:
                   "or"i / "load"i / "save"i / "ferr"i / "deek"i / "doke"i /
                  "abs"i / "cast"i / "sin"i / "cos"i / "tan"i / "atn"i / "asm"i / "strcpy"i / "strncpy"i / "strlen"i / "strcmp"i / "curpos"i /
                  "strpos"i / "val"i / "sqr"i / "sgn"i / "wait"i / "watch"i / "pragma"i / "memset"i / "memcpy"i / "memshift"i /
-                 "while"i / "endwhile"i / "repeat"i / "until"i)
+                 "while"i / "endwhile"i / "repeat"i / "until"i / "aliasfn"i / "aliascmd"i)
     WS < (space / "~" ('\r' / '\n' / '\r\n')+ )*
     EOI < !.
 

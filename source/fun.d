@@ -84,7 +84,8 @@ Fun FunFactory(ParseTree node, Program program) {
         break;
 
         default:
-        assert(0);
+            fun = new AliasedFun(node, program);
+        break;
     }
 
     return fun;
@@ -207,26 +208,35 @@ class UsrFun:Fun
     // This function can take any number of parameters
     protected ubyte arg_count = 0;
 
+    string address;
+
+    override protected char[] getPossibleTypes()
+    {
+        return ['b', 'w', 'f', 's'];
+    }
+
     this(ParseTree node, Program program)
     {
         super(node, program);
-        auto e_list = this.node.children[2].children;
-        int arg_count = to!int(e_list.length);
+        if(this.node.children.length > 2) {
+            auto e_list = this.node.children[2].children;
+            int arg_count = to!int(e_list.length);
 
-        for(int i=0; i < arg_count; i++) {
-            int index = arg_count - 1 - i;
-            auto e = e_list[i];
-            if(e.name == "XCBASIC.Expression") {
-                this.arglist[index] = new Expression(e, this.program);
-            }
-            else if(e.name == "XCBASIC.String") {
-                this.arglist[index] = new StringExpression(e, this.program);
-            }
-            else {
-                this.program.error("Syntax error");
-            }
+            for(int i=0; i < arg_count; i++) {
+                int index = arg_count - 1 - i;
+                auto e = e_list[i];
+                if(e.name == "XCBASIC.Expression") {
+                    this.arglist[index] = new Expression(e, this.program);
+                }
+                else if(e.name == "XCBASIC.String") {
+                    this.arglist[index] = new StringExpression(e, this.program);
+                }
+                else {
+                    this.program.error("Syntax error");
+                }
 
-            this.arglist[index].eval();
+                this.arglist[index].eval();
+            }
         }
     }
 
@@ -244,8 +254,39 @@ class UsrFun:Fun
             }
             asmcode ~= to!string(e);
         }
+
+        if(this.address != "") {
+            // Address was specified: this is an aliased fn call
+            asmcode ~= address;
+        }
+
         asmcode ~= fncode;
         return asmcode;
+    }
+}
+
+class AliasedFun: UsrFun
+{
+    mixin FunConstructor;
+
+    protected bool check_argcount = false;
+
+    override protected char[] getPossibleTypes()
+    {
+        return ['b', 'w', 'f', 's'];
+    }
+
+    override void process()
+    {
+        string fnname = join(this.node.children[0].matches);
+        string sigil = join(this.node.children[1].matches);
+        sigil = sigil == "" ? "#" : sigil;
+        string name = fnname ~ sigil;
+        if(!(name in this.program.fun_aliases)) {
+            this.program.error("Function '" ~ name ~ "' does not exist");
+        }
+        this.address = this.program.fun_aliases[name];
+        this.fncode ~= "\tusr\n";
     }
 }
 
